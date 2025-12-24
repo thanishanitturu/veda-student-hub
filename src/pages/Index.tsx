@@ -1,13 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
+import { TeacherDashboard } from "@/components/dashboard/teacher/TeacherDashboard";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { Helmet } from "react-helmet";
 
 const Index = () => {
+  const [activeView, setActiveView] = useState<"student" | "teacher">("student");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>Veda Learning Analytics | Student & Teacher Dashboard</title>
+        <meta 
+          name="description" 
+          content="Track quiz attempts, assignment grades, and learning progress with Veda's comprehensive analytics dashboard for students and teachers." 
+        />
+      </Helmet>
+      
+      <div className="pb-20">
+        {activeView === "student" ? <StudentDashboard /> : <TeacherDashboard />}
+        <DashboardNav activeView={activeView} onViewChange={setActiveView} />
       </div>
-    </div>
+    </>
   );
 };
 
