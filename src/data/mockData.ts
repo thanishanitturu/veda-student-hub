@@ -260,33 +260,59 @@ export const courseData: Course = {
   ]
 };
 
-// Moodle Quiz structure for teacher view
-export interface MoodleQuiz {
+// Quiz structure for teacher view (module-based)
+export interface ModuleQuiz {
   id: string;
-  name: string;
+  moduleId: string;
+  moduleName: string;
   maxScore: number;
 }
 
-// Student quiz attempt for teacher matrix view
+// Student quiz attempt for teacher matrix view (supports multiple attempts)
 export interface StudentQuizAttempt {
   studentId: string;
   quizId: string;
+  moduleId: string;
   attempted: boolean;
-  score?: number;
-  maxScore?: number;
-  percentage?: number;
-  attemptDate?: string;
+  attempts?: {
+    attemptNumber: number;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    attemptDate: string;
+  }[];
+  bestScore?: number;
+  bestPercentage?: number;
 }
 
 // Student assignment attempt for teacher matrix view
 export interface StudentAssignmentAttempt {
   studentId: string;
   assignmentId: string;
-  attempted: boolean;
+  moduleId: string;
+  submitted: boolean;
   score?: number;
   maxScore?: number;
   percentage?: number;
   submittedDate?: string;
+}
+
+// Project submission for teacher view
+export interface StudentProjectSubmission {
+  studentId: string;
+  projectId: string;
+  submitted: boolean;
+  score?: number;
+  maxScore?: number;
+  percentage?: number;
+  submittedDate?: string;
+}
+
+// Course project
+export interface CourseProject {
+  id: string;
+  name: string;
+  maxScore: number;
 }
 
 // Student data for teacher dashboard
@@ -333,79 +359,155 @@ export const studentsData: Student[] = [
   }
 ];
 
-// Moodle Quizzes available
-export const moodleQuizzes: MoodleQuiz[] = [
-  { id: "mq-1", name: "Midterm Review", maxScore: 50 },
-  { id: "mq-2", name: "Final Exam", maxScore: 100 },
-  { id: "mq-3", name: "Weekly Quiz 1", maxScore: 20 },
-  { id: "mq-4", name: "Weekly Quiz 2", maxScore: 20 },
-];
+// Module-based quizzes for teacher view
+export const moduleQuizzes: ModuleQuiz[] = courseData.modules
+  .filter(m => m.quizzes.length > 0)
+  .map(m => ({
+    id: m.id,
+    moduleId: m.id,
+    moduleName: m.name,
+    maxScore: 100
+  }));
 
-// Veda Quizzes (module-based)
-export const vedaQuizzes = courseData.modules.filter(m => m.quizzes.length > 0).map(m => ({
-  id: m.id,
-  name: m.name,
-  maxScore: 100
-}));
-
-// Assignments available
+// Assignments available (module-based)
 export const assignmentsList = courseData.modules
   .filter(m => m.hasAssignment && m.assignment)
   .map(m => ({
     id: m.assignment!.id,
-    name: m.assignment!.title,
+    moduleId: m.id,
     moduleName: m.name,
+    name: m.assignment!.title,
     maxScore: m.assignment!.maxGrade
   }));
 
-// Student quiz attempts matrix data
-export const studentMoodleQuizAttempts: StudentQuizAttempt[] = [
-  // Midterm Review
-  { studentId: "student-1", quizId: "mq-1", attempted: true, score: 42, maxScore: 50, percentage: 84, attemptDate: "Dec 18, 2024" },
-  { studentId: "student-2", quizId: "mq-1", attempted: false },
-  { studentId: "student-3", quizId: "mq-1", attempted: true, score: 28, maxScore: 50, percentage: 56, attemptDate: "Dec 19, 2024" },
-  { studentId: "student-4", quizId: "mq-1", attempted: true, score: 35, maxScore: 50, percentage: 70, attemptDate: "Dec 18, 2024" },
-  { studentId: "student-5", quizId: "mq-1", attempted: true, score: 45, maxScore: 50, percentage: 90, attemptDate: "Dec 20, 2024" },
-  // Final Exam
-  { studentId: "student-1", quizId: "mq-2", attempted: true, score: 88, maxScore: 100, percentage: 88, attemptDate: "Dec 22, 2024" },
-  { studentId: "student-2", quizId: "mq-2", attempted: true, score: 72, maxScore: 100, percentage: 72, attemptDate: "Dec 22, 2024" },
-  { studentId: "student-3", quizId: "mq-2", attempted: true, score: 95, maxScore: 100, percentage: 95, attemptDate: "Dec 22, 2024" },
-  { studentId: "student-4", quizId: "mq-2", attempted: false },
-  { studentId: "student-5", quizId: "mq-2", attempted: true, score: 80, maxScore: 100, percentage: 80, attemptDate: "Dec 23, 2024" },
-  // Weekly Quiz 1
-  { studentId: "student-1", quizId: "mq-3", attempted: true, score: 18, maxScore: 20, percentage: 90, attemptDate: "Dec 10, 2024" },
-  { studentId: "student-2", quizId: "mq-3", attempted: true, score: 14, maxScore: 20, percentage: 70, attemptDate: "Dec 11, 2024" },
-  { studentId: "student-3", quizId: "mq-3", attempted: true, score: 20, maxScore: 20, percentage: 100, attemptDate: "Dec 10, 2024" },
-  { studentId: "student-4", quizId: "mq-3", attempted: true, score: 12, maxScore: 20, percentage: 60, attemptDate: "Dec 12, 2024" },
-  { studentId: "student-5", quizId: "mq-3", attempted: false },
+// Course project (one per course)
+export const courseProject: CourseProject = {
+  id: "project-1",
+  name: "Final Capstone Project: Build a Generative AI Application",
+  maxScore: 100
+};
+
+// Student quiz attempts with multiple attempts support (1-3 attempts per quiz)
+export const studentQuizAttempts: StudentQuizAttempt[] = [
+  // Module 1 attempts
+  { 
+    studentId: "student-1", quizId: "module-1", moduleId: "module-1", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 70, maxScore: 100, percentage: 70, attemptDate: "Dec 12, 2024" },
+      { attemptNumber: 2, score: 85, maxScore: 100, percentage: 85, attemptDate: "Dec 15, 2024" }
+    ],
+    bestScore: 85, bestPercentage: 85
+  },
+  { 
+    studentId: "student-2", quizId: "module-1", moduleId: "module-1", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 70, maxScore: 100, percentage: 70, attemptDate: "Dec 16, 2024" }
+    ],
+    bestScore: 70, bestPercentage: 70
+  },
+  { 
+    studentId: "student-3", quizId: "module-1", moduleId: "module-1", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 80, maxScore: 100, percentage: 80, attemptDate: "Dec 10, 2024" },
+      { attemptNumber: 2, score: 88, maxScore: 100, percentage: 88, attemptDate: "Dec 12, 2024" },
+      { attemptNumber: 3, score: 92, maxScore: 100, percentage: 92, attemptDate: "Dec 14, 2024" }
+    ],
+    bestScore: 92, bestPercentage: 92
+  },
+  { studentId: "student-4", quizId: "module-1", moduleId: "module-1", attempted: false },
+  { 
+    studentId: "student-5", quizId: "module-1", moduleId: "module-1", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 78, maxScore: 100, percentage: 78, attemptDate: "Dec 17, 2024" }
+    ],
+    bestScore: 78, bestPercentage: 78
+  },
+  // Module 2 attempts
+  { 
+    studentId: "student-1", quizId: "module-2", moduleId: "module-2", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 75, maxScore: 100, percentage: 75, attemptDate: "Dec 16, 2024" },
+      { attemptNumber: 2, score: 88, maxScore: 100, percentage: 88, attemptDate: "Dec 18, 2024" }
+    ],
+    bestScore: 88, bestPercentage: 88
+  },
+  { studentId: "student-2", quizId: "module-2", moduleId: "module-2", attempted: false },
+  { 
+    studentId: "student-3", quizId: "module-2", moduleId: "module-2", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 90, maxScore: 100, percentage: 90, attemptDate: "Dec 15, 2024" },
+      { attemptNumber: 2, score: 95, maxScore: 100, percentage: 95, attemptDate: "Dec 17, 2024" }
+    ],
+    bestScore: 95, bestPercentage: 95
+  },
+  { 
+    studentId: "student-4", quizId: "module-2", moduleId: "module-2", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 55, maxScore: 100, percentage: 55, attemptDate: "Dec 18, 2024" },
+      { attemptNumber: 2, score: 62, maxScore: 100, percentage: 62, attemptDate: "Dec 20, 2024" }
+    ],
+    bestScore: 62, bestPercentage: 62
+  },
+  { 
+    studentId: "student-5", quizId: "module-2", moduleId: "module-2", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 80, maxScore: 100, percentage: 80, attemptDate: "Dec 19, 2024" }
+    ],
+    bestScore: 80, bestPercentage: 80
+  },
+  // Module 3 attempts
+  { 
+    studentId: "student-1", quizId: "module-3", moduleId: "module-3", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 82, maxScore: 100, percentage: 82, attemptDate: "Dec 20, 2024" }
+    ],
+    bestScore: 82, bestPercentage: 82
+  },
+  { 
+    studentId: "student-2", quizId: "module-3", moduleId: "module-3", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 68, maxScore: 100, percentage: 68, attemptDate: "Dec 21, 2024" },
+      { attemptNumber: 2, score: 75, maxScore: 100, percentage: 75, attemptDate: "Dec 22, 2024" }
+    ],
+    bestScore: 75, bestPercentage: 75
+  },
+  { 
+    studentId: "student-3", quizId: "module-3", moduleId: "module-3", attempted: true,
+    attempts: [
+      { attemptNumber: 1, score: 91, maxScore: 100, percentage: 91, attemptDate: "Dec 19, 2024" }
+    ],
+    bestScore: 91, bestPercentage: 91
+  },
+  { studentId: "student-4", quizId: "module-3", moduleId: "module-3", attempted: false },
+  { studentId: "student-5", quizId: "module-3", moduleId: "module-3", attempted: false },
 ];
 
-// Student Veda quiz attempts
-export const studentVedaQuizAttempts: StudentQuizAttempt[] = [
-  { studentId: "student-1", quizId: "module-1", attempted: true, score: 85, maxScore: 100, percentage: 85, attemptDate: "Dec 15, 2024" },
-  { studentId: "student-2", quizId: "module-1", attempted: true, score: 70, maxScore: 100, percentage: 70, attemptDate: "Dec 16, 2024" },
-  { studentId: "student-3", quizId: "module-1", attempted: true, score: 92, maxScore: 100, percentage: 92, attemptDate: "Dec 14, 2024" },
-  { studentId: "student-4", quizId: "module-1", attempted: false },
-  { studentId: "student-5", quizId: "module-1", attempted: true, score: 78, maxScore: 100, percentage: 78, attemptDate: "Dec 17, 2024" },
-  { studentId: "student-1", quizId: "module-2", attempted: true, score: 88, maxScore: 100, percentage: 88, attemptDate: "Dec 18, 2024" },
-  { studentId: "student-2", quizId: "module-2", attempted: false },
-  { studentId: "student-3", quizId: "module-2", attempted: true, score: 95, maxScore: 100, percentage: 95, attemptDate: "Dec 17, 2024" },
-  { studentId: "student-4", quizId: "module-2", attempted: true, score: 62, maxScore: 100, percentage: 62, attemptDate: "Dec 20, 2024" },
-  { studentId: "student-5", quizId: "module-2", attempted: true, score: 80, maxScore: 100, percentage: 80, attemptDate: "Dec 19, 2024" },
-];
-
-// Student assignment attempts
+// Student assignment submissions
 export const studentAssignmentAttempts: StudentAssignmentAttempt[] = [
-  { studentId: "student-1", assignmentId: "assign-2", attempted: true, score: 85, maxScore: 100, percentage: 85, submittedDate: "Dec 20, 2024" },
-  { studentId: "student-2", assignmentId: "assign-2", attempted: true, score: 72, maxScore: 100, percentage: 72, submittedDate: "Dec 21, 2024" },
-  { studentId: "student-3", assignmentId: "assign-2", attempted: true, score: 94, maxScore: 100, percentage: 94, submittedDate: "Dec 19, 2024" },
-  { studentId: "student-4", assignmentId: "assign-2", attempted: false },
-  { studentId: "student-5", assignmentId: "assign-2", attempted: true, score: 80, maxScore: 100, percentage: 80, submittedDate: "Dec 22, 2024" },
-  { studentId: "student-1", assignmentId: "assign-3", attempted: true, score: 78, maxScore: 100, percentage: 78, submittedDate: "Dec 22, 2024" },
-  { studentId: "student-2", assignmentId: "assign-3", attempted: false },
-  { studentId: "student-3", assignmentId: "assign-3", attempted: true, score: 90, maxScore: 100, percentage: 90, submittedDate: "Dec 21, 2024" },
-  { studentId: "student-4", assignmentId: "assign-3", attempted: true, score: 65, maxScore: 100, percentage: 65, submittedDate: "Dec 24, 2024" },
-  { studentId: "student-5", assignmentId: "assign-3", attempted: false },
+  { studentId: "student-1", assignmentId: "assign-2", moduleId: "module-2", submitted: true, score: 85, maxScore: 100, percentage: 85, submittedDate: "Dec 20, 2024" },
+  { studentId: "student-2", assignmentId: "assign-2", moduleId: "module-2", submitted: true, score: 72, maxScore: 100, percentage: 72, submittedDate: "Dec 21, 2024" },
+  { studentId: "student-3", assignmentId: "assign-2", moduleId: "module-2", submitted: true, score: 94, maxScore: 100, percentage: 94, submittedDate: "Dec 19, 2024" },
+  { studentId: "student-4", assignmentId: "assign-2", moduleId: "module-2", submitted: false },
+  { studentId: "student-5", assignmentId: "assign-2", moduleId: "module-2", submitted: true, score: 80, maxScore: 100, percentage: 80, submittedDate: "Dec 22, 2024" },
+  { studentId: "student-1", assignmentId: "assign-3", moduleId: "module-3", submitted: true, score: 78, maxScore: 100, percentage: 78, submittedDate: "Dec 22, 2024" },
+  { studentId: "student-2", assignmentId: "assign-3", moduleId: "module-3", submitted: false },
+  { studentId: "student-3", assignmentId: "assign-3", moduleId: "module-3", submitted: true, score: 90, maxScore: 100, percentage: 90, submittedDate: "Dec 21, 2024" },
+  { studentId: "student-4", assignmentId: "assign-3", moduleId: "module-3", submitted: true, score: 65, maxScore: 100, percentage: 65, submittedDate: "Dec 24, 2024" },
+  { studentId: "student-5", assignmentId: "assign-3", moduleId: "module-3", submitted: false },
+  { studentId: "student-1", assignmentId: "assign-5", moduleId: "module-5", submitted: true, score: 92, maxScore: 100, percentage: 92, submittedDate: "Dec 23, 2024" },
+  { studentId: "student-2", assignmentId: "assign-5", moduleId: "module-5", submitted: false },
+  { studentId: "student-3", assignmentId: "assign-5", moduleId: "module-5", submitted: true, score: 96, maxScore: 100, percentage: 96, submittedDate: "Dec 22, 2024" },
+  { studentId: "student-4", assignmentId: "assign-5", moduleId: "module-5", submitted: false },
+  { studentId: "student-5", assignmentId: "assign-5", moduleId: "module-5", submitted: true, score: 88, maxScore: 100, percentage: 88, submittedDate: "Dec 24, 2024" },
+];
+
+// Student project submissions
+export const studentProjectSubmissions: StudentProjectSubmission[] = [
+  { studentId: "student-1", projectId: "project-1", submitted: true, score: 90, maxScore: 100, percentage: 90, submittedDate: "Dec 24, 2024" },
+  { studentId: "student-2", projectId: "project-1", submitted: true, score: 78, maxScore: 100, percentage: 78, submittedDate: "Dec 24, 2024" },
+  { studentId: "student-3", projectId: "project-1", submitted: true, score: 95, maxScore: 100, percentage: 95, submittedDate: "Dec 23, 2024" },
+  { studentId: "student-4", projectId: "project-1", submitted: false },
+  { studentId: "student-5", projectId: "project-1", submitted: false },
 ];
 
 // Aggregated stats
