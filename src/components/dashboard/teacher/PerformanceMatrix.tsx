@@ -1,16 +1,22 @@
-import { CheckCircle2, Circle, Calendar } from "lucide-react";
+import { CheckCircle2, Circle, Calendar, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Student, StudentQuizAttempt, StudentAssignmentAttempt } from "@/data/mockData";
+import { Student, StudentQuizAttempt, StudentAssignmentAttempt, StudentProjectSubmission } from "@/data/mockData";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PerformanceMatrixProps {
   title: string;
   subtitle: string;
   students: Student[];
-  attempts: (StudentQuizAttempt | StudentAssignmentAttempt)[];
+  attempts: StudentQuizAttempt[] | StudentAssignmentAttempt[] | StudentProjectSubmission[];
   selectedItemId: string;
   maxScore: number;
-  type: "quiz" | "assignment";
+  type: "quiz" | "assignment" | "project";
   onStudentClick?: (student: Student) => void;
 }
 
@@ -24,17 +30,41 @@ export function PerformanceMatrix({
   type,
   onStudentClick
 }: PerformanceMatrixProps) {
-  const attemptedCount = attempts.filter(a => a.attempted && 
-    (type === "quiz" ? (a as StudentQuizAttempt).quizId : (a as StudentAssignmentAttempt).assignmentId) === selectedItemId
-  ).length;
-  const notAttemptedCount = students.length - attemptedCount;
-
-  const getStudentAttempt = (studentId: string) => {
-    return attempts.find(a => 
-      a.studentId === studentId && 
-      (type === "quiz" ? (a as StudentQuizAttempt).quizId : (a as StudentAssignmentAttempt).assignmentId) === selectedItemId
-    );
+  
+  const getStudentData = (studentId: string) => {
+    if (type === "quiz") {
+      return (attempts as StudentQuizAttempt[]).find(a => 
+        a.studentId === studentId && a.quizId === selectedItemId
+      );
+    } else if (type === "assignment") {
+      return (attempts as StudentAssignmentAttempt[]).find(a => 
+        a.studentId === studentId && a.assignmentId === selectedItemId
+      );
+    } else {
+      return (attempts as StudentProjectSubmission[]).find(a => 
+        a.studentId === studentId && a.projectId === selectedItemId
+      );
+    }
   };
+
+  const getAttemptedCount = () => {
+    if (type === "quiz") {
+      return (attempts as StudentQuizAttempt[]).filter(a => 
+        a.attempted && a.quizId === selectedItemId
+      ).length;
+    } else if (type === "assignment") {
+      return (attempts as StudentAssignmentAttempt[]).filter(a => 
+        a.submitted && a.assignmentId === selectedItemId
+      ).length;
+    } else {
+      return (attempts as StudentProjectSubmission[]).filter(a => 
+        a.submitted && a.projectId === selectedItemId
+      ).length;
+    }
+  };
+
+  const attemptedCount = getAttemptedCount();
+  const notAttemptedCount = students.length - attemptedCount;
 
   const getScoreColor = (percentage?: number) => {
     if (!percentage) return "";
@@ -58,11 +88,14 @@ export function PerformanceMatrix({
     return colors[index % colors.length];
   };
 
+  const statusLabel = type === "assignment" || type === "project" ? "Submitted" : "Attempted";
+  const notStatusLabel = type === "assignment" || type === "project" ? "Not Submitted" : "Not Attempted";
+
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h2 className="text-xl font-bold text-foreground">{title}</h2>
             <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
@@ -73,14 +106,14 @@ export function PerformanceMatrix({
               className="bg-dashboard-green/10 text-dashboard-green border-dashboard-green/20 px-3 py-1.5 gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
-              {attemptedCount} Attempted
+              {attemptedCount} {statusLabel}
             </Badge>
             <Badge 
               variant="outline" 
               className="bg-dashboard-red/10 text-dashboard-red border-dashboard-red/20 px-3 py-1.5 gap-1.5"
             >
               <Circle className="w-4 h-4" />
-              {notAttemptedCount} Not Attempted
+              {notAttemptedCount} {notStatusLabel}
             </Badge>
           </div>
         </div>
@@ -97,8 +130,13 @@ export function PerformanceMatrix({
               <th className="text-left px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
+              {type === "quiz" && (
+                <th className="text-center px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Attempts
+                </th>
+              )}
               <th className="text-center px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Score
+                {type === "quiz" ? "Best Score" : "Score"}
               </th>
               <th className="text-center px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Percentage
@@ -110,10 +148,17 @@ export function PerformanceMatrix({
           </thead>
           <tbody>
             {students.map((student, index) => {
-              const attempt = getStudentAttempt(student.id);
-              const dateField = type === "quiz" 
-                ? (attempt as StudentQuizAttempt)?.attemptDate 
-                : (attempt as StudentAssignmentAttempt)?.submittedDate;
+              const data = getStudentData(student.id);
+              const isQuiz = type === "quiz";
+              const quizData = data as StudentQuizAttempt | undefined;
+              const submissionData = data as StudentAssignmentAttempt | StudentProjectSubmission | undefined;
+              
+              const hasAttempted = isQuiz ? quizData?.attempted : submissionData?.submitted;
+              const score = isQuiz ? quizData?.bestScore : submissionData?.score;
+              const percentage = isQuiz ? quizData?.bestPercentage : submissionData?.percentage;
+              const dateField = isQuiz 
+                ? (quizData?.attempts?.[quizData.attempts.length - 1]?.attemptDate)
+                : submissionData?.submittedDate;
 
               return (
                 <tr 
@@ -135,13 +180,13 @@ export function PerformanceMatrix({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {attempt?.attempted ? (
+                    {hasAttempted ? (
                       <Badge 
                         variant="outline" 
                         className="bg-dashboard-green/10 text-dashboard-green border-dashboard-green/20 gap-1"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Attempted
+                        {statusLabel}
                       </Badge>
                     ) : (
                       <Badge 
@@ -149,30 +194,59 @@ export function PerformanceMatrix({
                         className="bg-muted text-muted-foreground border-border gap-1"
                       >
                         <Circle className="w-3.5 h-3.5" />
-                        Not Attempted
+                        {notStatusLabel}
                       </Badge>
                     )}
                   </td>
+                  {isQuiz && (
+                    <td className="px-6 py-4 text-center">
+                      {quizData?.attempted && quizData.attempts ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-dashboard-blue/10 text-dashboard-blue font-medium text-sm cursor-help">
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                {quizData.attempts.length}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-popover text-popover-foreground">
+                              <div className="space-y-1.5">
+                                {quizData.attempts.map((att, i) => (
+                                  <div key={i} className="flex items-center gap-3 text-sm">
+                                    <span className="text-muted-foreground">Attempt {att.attemptNumber}:</span>
+                                    <span className="font-medium">{att.score}/{att.maxScore}</span>
+                                    <span className="text-muted-foreground">({att.percentage}%)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4 text-center">
-                    {attempt?.attempted ? (
+                    {hasAttempted && score !== undefined ? (
                       <span className="font-semibold text-foreground">
-                        {attempt.score}/{maxScore}
+                        {score}/{maxScore}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {attempt?.attempted ? (
-                      <Badge className={`${getScoreColor(attempt.percentage)} border-0 font-semibold`}>
-                        {attempt.percentage}%
+                    {hasAttempted && percentage !== undefined ? (
+                      <Badge className={`${getScoreColor(percentage)} border-0 font-semibold`}>
+                        {percentage}%
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {attempt?.attempted && dateField ? (
+                    {hasAttempted && dateField ? (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         <span className="text-sm">{dateField}</span>

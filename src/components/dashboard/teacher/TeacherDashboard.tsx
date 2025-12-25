@@ -3,25 +3,24 @@ import {
   studentsData, 
   courseData, 
   Student,
-  moodleQuizzes,
-  vedaQuizzes,
+  moduleQuizzes,
   assignmentsList,
-  studentMoodleQuizAttempts,
-  studentVedaQuizAttempts,
-  studentAssignmentAttempts
+  courseProject,
+  studentQuizAttempts,
+  studentAssignmentAttempts,
+  studentProjectSubmissions
 } from "@/data/mockData";
 import { QuizSelector } from "./QuizSelector";
 import { PerformanceMatrix } from "./PerformanceMatrix";
 import { StudentDetailView } from "./StudentDetailView";
 import { GraduationCap } from "lucide-react";
 
-type ViewType = "moodle" | "veda" | "assignment" | "student";
+type ViewType = "quiz" | "assignment" | "student" | "project";
 
 export function TeacherDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [activeView, setActiveView] = useState<ViewType>("moodle");
-  const [selectedMoodleQuiz, setSelectedMoodleQuiz] = useState(moodleQuizzes[0]?.id || "");
-  const [selectedVedaQuiz, setSelectedVedaQuiz] = useState(vedaQuizzes[0]?.id || "");
+  const [activeView, setActiveView] = useState<ViewType>("quiz");
+  const [selectedQuizModule, setSelectedQuizModule] = useState(moduleQuizzes[0]?.id || "");
   const [selectedAssignment, setSelectedAssignment] = useState(assignmentsList[0]?.id || "");
   const [studentSearch, setStudentSearch] = useState("");
 
@@ -38,35 +37,34 @@ export function TeacherDashboard() {
   // Get current selection details
   const getCurrentMatrixData = () => {
     switch (activeView) {
-      case "moodle":
-        const moodleQuiz = moodleQuizzes.find(q => q.id === selectedMoodleQuiz);
+      case "quiz":
+        const quiz = moduleQuizzes.find(q => q.id === selectedQuizModule);
         return {
-          title: moodleQuiz?.name || "Select a Quiz",
-          subtitle: "Moodle Quiz Performance",
-          attempts: studentMoodleQuizAttempts,
-          selectedId: selectedMoodleQuiz,
-          maxScore: moodleQuiz?.maxScore || 100,
-          type: "quiz" as const
-        };
-      case "veda":
-        const vedaQuiz = vedaQuizzes.find(q => q.id === selectedVedaQuiz);
-        return {
-          title: vedaQuiz?.name || "Select a Module",
-          subtitle: "Veda Quiz Performance",
-          attempts: studentVedaQuizAttempts,
-          selectedId: selectedVedaQuiz,
-          maxScore: vedaQuiz?.maxScore || 100,
+          title: quiz?.moduleName || "Select a Module",
+          subtitle: "Module Quiz Performance",
+          attempts: studentQuizAttempts,
+          selectedId: selectedQuizModule,
+          maxScore: quiz?.maxScore || 100,
           type: "quiz" as const
         };
       case "assignment":
         const assignment = assignmentsList.find(a => a.id === selectedAssignment);
         return {
           title: assignment?.name || "Select an Assignment",
-          subtitle: assignment?.moduleName || "Assignment Performance",
+          subtitle: assignment?.moduleName || "Assignment Submissions",
           attempts: studentAssignmentAttempts,
           selectedId: selectedAssignment,
           maxScore: assignment?.maxScore || 100,
           type: "assignment" as const
+        };
+      case "project":
+        return {
+          title: courseProject.name,
+          subtitle: "Final Project Submissions",
+          attempts: studentProjectSubmissions,
+          selectedId: courseProject.id,
+          maxScore: courseProject.maxScore,
+          type: "project" as const
         };
       default:
         return {
@@ -112,43 +110,32 @@ export function TeacherDashboard() {
             {/* Quick Glance Selectors */}
             <section>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div onClick={() => setActiveView("moodle")} className="cursor-pointer">
+                <div onClick={() => setActiveView("quiz")} className="cursor-pointer">
                   <QuizSelector
-                    type="moodle"
-                    label="Moodle Quizzes"
-                    placeholder="Select a quiz..."
-                    options={moodleQuizzes.map(q => ({ id: q.id, name: q.name }))}
-                    value={selectedMoodleQuiz}
+                    type="quiz"
+                    label="Quizzes"
+                    placeholder="Select module..."
+                    options={moduleQuizzes.map(q => ({ id: q.id, name: q.moduleName }))}
+                    value={selectedQuizModule}
                     onChange={(value) => {
-                      setSelectedMoodleQuiz(value);
-                      setActiveView("moodle");
+                      setSelectedQuizModule(value);
+                      setActiveView("quiz");
                     }}
+                    isActive={activeView === "quiz"}
                   />
                 </div>
                 <div onClick={() => setActiveView("assignment")} className="cursor-pointer">
                   <QuizSelector
                     type="assignment"
                     label="Assignments"
-                    placeholder="Choose an assignment..."
-                    options={assignmentsList.map(a => ({ id: a.id, name: a.name }))}
+                    placeholder="Select assignment..."
+                    options={assignmentsList.map(a => ({ id: a.id, name: `${a.moduleName}` }))}
                     value={selectedAssignment}
                     onChange={(value) => {
                       setSelectedAssignment(value);
                       setActiveView("assignment");
                     }}
-                  />
-                </div>
-                <div onClick={() => setActiveView("veda")} className="cursor-pointer">
-                  <QuizSelector
-                    type="veda"
-                    label="Veda Quizzes"
-                    placeholder="View Student Matrix"
-                    options={vedaQuizzes.map(q => ({ id: q.id, name: q.name }))}
-                    value={selectedVedaQuiz}
-                    onChange={(value) => {
-                      setSelectedVedaQuiz(value);
-                      setActiveView("veda");
-                    }}
+                    isActive={activeView === "assignment"}
                   />
                 </div>
                 <div onClick={() => setActiveView("student")} className="cursor-pointer">
@@ -165,6 +152,18 @@ export function TeacherDashboard() {
                       setStudentSearch(query);
                       setActiveView("student");
                     }}
+                    isActive={activeView === "student"}
+                  />
+                </div>
+                <div onClick={() => setActiveView("project")} className="cursor-pointer">
+                  <QuizSelector
+                    type="project"
+                    label="Project"
+                    placeholder={courseProject.name}
+                    options={[{ id: courseProject.id, name: courseProject.name }]}
+                    value={courseProject.id}
+                    onChange={() => setActiveView("project")}
+                    isActive={activeView === "project"}
                   />
                 </div>
               </div>
